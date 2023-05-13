@@ -1,9 +1,9 @@
 
 /*
- * Pega a resposta NPL - Rest Connector
+ * Pega a resposta NLP - Rest Connector
  * @returns String
  */
-function getRespostaNPL(conversaId, respostaId){
+function getRespostaNLP(conversaId, respostaId){
 
     try {
 
@@ -33,7 +33,7 @@ function getRespostaNPL(conversaId, respostaId){
  * Adiciona uma interação na conversa
  * @returns token id da resposta do bot
  */
-function adicionaAtividadeNPL(conversaId, mensagem){
+function adicionaAtividadeNLP(conversaId, mensagem){
     try {
 
         var rota = `http://localhost:3000/directline/conversations/${conversaId}/activities`;
@@ -78,10 +78,10 @@ function adicionaAtividadeNPL(conversaId, mensagem){
 }
 
 /*
- * Inicia uma conversa com p NPL - Rest Connector
+ * Inicia uma conversa com p NLP - Rest Connector
  * @returns id
  */
-function iniciaConversaNPL(){
+function iniciaConversaNLP(){
     try {
 
         var request = require('sync-request');
