@@ -1,4 +1,60 @@
 
+const dateTime = require('node-datetime');
+const db = require("./db.js");
+
+
+checaSeExisteConversa('519865262549')
+    .then(conversaIdNLP => {
+        conversaIdNLP != "" ? console.log('Tem conversa') : console.log('Não tem conversa');
+    })
+    .catch(err => console.log(`Error: ${err}`));
+
+
+
+function checaSeExisteConversa(telefone_cliente){
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT * FROM conversas WHERE telefone_cliente LIKE '%${telefone_cliente}%'`, (error, rows) => {
+            if (error) reject(err);
+    
+            if(rows.length > 0){
+                resolve(rows[0].id_conversa_nlp);
+            }else{
+                resolve("");
+            }
+
+        });
+    })
+}
+
+function listaConversas(){
+    db.each(`SELECT * FROM conversas`, (error, row) => {
+        if (error) {
+          throw new Error(error.message);
+        }
+        console.log(row);
+    });
+}
+
+/*
+ * Registra uma nova converda com o chatbot
+ * @returns avoid
+ */
+function salvaConversaToken(id_conversa_nlp, nome_cliente, telefone_cliente){
+    let dt = dateTime.create();
+    let data_registro = dt.format('Y-m-d H:M:S');
+
+    db.run(
+        `INSERT INTO conversas (nome_cliente, telefone_cliente, id_conversa_nlp, data_registro) 
+        VALUES (?, ?, ?, ?)`, [nome_cliente, telefone_cliente, id_conversa_nlp, data_registro],
+        function (error){
+            if(error){
+                console.error(error.message);
+            }
+            console.log(`Inserido registro com o ID: ${this.lastID}`);
+        }
+    );
+}
+
 /*
  * Pega a resposta NLP - Rest Connector
  * @returns String

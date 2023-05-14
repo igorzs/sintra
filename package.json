@@ -13,6 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "node-datetime": "^2.1.2",
+    "sqlite3": "^5.1.6",
     "sync-request": "^6.1.0"
   },
   "bugs": {
