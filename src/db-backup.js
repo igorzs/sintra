@@ -1,6 +1,21 @@
 const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
-const filepath = "./sintra.db";
+const filepath = "../sintra.db";
+const mysql = require('mysql');
+
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'db_sintra'
+});
+
+connection.connect((error) => {
+  if (error) {
+    console.error('Erro ao conectar ao banco de dados:', error);
+    return;
+  }
+});
 
 function criaConexao(){
     if(fs.existsSync(filepath)){
@@ -29,7 +44,8 @@ function criaTabelaConversas(db){
             nome_cliente VARCHAR(200),
             telefone_cliente VARCHAR(15) NOT NULL,
             id_conversa_nlp VARCHAR(36) NOT NULL,
-            data_registro DATETIME NOT NULL
+            data_registro DATETIME NOT NULL,
+            posicao_conversa INT NOT NULL
         );
     `)
 }
