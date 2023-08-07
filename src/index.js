@@ -1,6 +1,7 @@
 const dateTime = require('node-datetime');
 const db = require('./db.js');
 const venom = require('venom-bot');
+const fs = require('fs');
 
 venom
   .create({
@@ -23,9 +24,9 @@ function start(client) {
 
         const contato_nome = message.notifyName;
         const contato_whats = message.from.replace("@c.us", "");
-        const contato_msg = removerCaracteresEspeciais(removerAcentos(message.body)).toLowerCase();
+        let contato_msg = removerCaracteresEspeciais(removerAcentos(message.body)).toLowerCase();
 
-        let conversa_id, nlp_conversa_id, posicao_conversa, sintra_resposta, nova_posicao_conversa;
+        let conversa_id, nlp_conversa_id, posicao_conversa, sintra_resposta, msg_inicial, menu_opcoes;
 
         checaSeExisteConversa(contato_whats)
         .then(async dados_conversa => {
@@ -39,6 +40,11 @@ function start(client) {
                 nlp_conversa_id = dados_conversa.id_conversa_nlp;
                 conversa_id = dados_conversa.id;
                 posicao_conversa = dados_conversa.posicao_conversa;
+                menu_opcoes = dados_conversa.menu_opcoes;
+
+                if(menu_opcoes != ""){
+                    menu_opcoes = JSON.parse(menu_opcoes);
+                }
 
             } else {
             
@@ -47,6 +53,7 @@ function start(client) {
                 nlp_conversa_id = iniciaConversaNLP();
                 conversa_id = await salvaConversaToken(nlp_conversa_id, contato_nome, contato_whats);
                 posicao_conversa = 0;
+                msg_inicial = true;
     
             }
 
@@ -54,9 +61,7 @@ function start(client) {
             if(posicao_conversa == 0 && contato_msg == 'simulador solar'){
                 atualizaPosicaoConversa(conversa_id, 1);
                 posicao_conversa = 1;
-
-                sintra_resposta = "Vamos iniciar o Simulador Solar. Fazer a primeira pergunta";
-
+                sintra_resposta = "Massaa!! Vou simular o sistema ideal para você. ☀😁\nVamos lá...||Antes de seguirmos, pode me informar qual o valor médio da sua fatura de energia?\nEx: R$ 100,00";
             }
     
             if(posicao_conversa > 0 && contato_msg != 'simulador solar'){
@@ -71,13 +76,67 @@ function start(client) {
                     atualizaPosicaoConversa(conversa_id, 0);
                 }
 
-            } else if (posicao_conversa == 0) {
+            } else if(msg_inicial){
 
-                //O usuário está em uma conversação normal
-                const nlp_resposta_id = adicionaAtividadeNLP(nlp_conversa_id, contato_msg);
-                sintra_resposta = getRespostaNLP(nlp_conversa_id, nlp_resposta_id);
+                let saudacao = saudar();
+                sintra_resposta = `${saudacao} ${contato_nome}!||Meu nome é *Sintra* sou uma assistente virtual pronta para te ajudar com qualquer dúvida em sistemas geradores de energia solar para sua residência.☀😁||Consigo te ajudar com questões referente a instalação, manutenção, financiamento, reparação ou venda de painéis solares e muito mais.||Aqui estão algumas perguntas de exemplo no qual eu posso estar te ajudando:\n - O que é energia solar?\n - Como os painéis solares funcionam?\n - Como é produzida a energia solar?\n - Quanto custa um painel solar?||Ah, e se você ainda ficar com dúvidas sobre o quanto você vai economizar gerando sua própria energia em sua residência, basta enviar a qualquer momento *Simulador Solar* que mostrarei detalhes do sistema fotovoltaico ideal para você.👷🏻||Então, bora começar?\n\nEnvie sua dúvida ou digite *Simulador Solar*`;
+            
+            } else if (posicao_conversa == 0 && !msg_inicial && contato_msg != "") {
 
+                let mostra_opcoes_novamente = true;
+                // Se o usuário mandou um número e temos menu de sugestão de perguntas, vamos pegar a pergunta selecionada
+                if(menu_opcoes != "" && !isNaN(contato_msg)){
+                    let opcao_selecionada = contato_msg;
+                    let pergunta_sugerida = "";
+
+                    console.log('Entrou aqui 1');
+
+                    for(let j = 0; j < menu_opcoes.length; j++){
+                        if(opcao_selecionada == (j + 1)){
+                            pergunta_sugerida = menu_opcoes[j];
+                            console.log("Pergunta selecionada: " + pergunta_sugerida);
+                            contato_msg = pergunta_sugerida;
+                            atualizaMenuOpcoes(conversa_id, "");
+                            mostra_opcoes_novamente = false;
+                            break;
+                        }
+                    }
+                }
+                
+                // Verifica se é para mostra o menu com as dúvidas sugeridas de novo
+                if(mostra_opcoes_novamente && menu_opcoes != ""){
+                    sintra_resposta = "Ops, acho que essa opção não existe! 🤔||Selecione uma das opções abaixo que mais se aproxima da sua dúvida:";
+
+                    for(let i = 0; i < menu_opcoes.length; i++){
+                        sintra_resposta += `\n*${i+1}* - ${menu_opcoes[i]}\n`;
+                    }
+
+                }else{
+                    //O usuário está em uma conversação normal, vamos para o NLP buscar a resposta
+                    const nlp_resposta_id = adicionaAtividadeNLP(nlp_conversa_id, contato_msg);
+                    sintra_resposta = getRespostaNLP(nlp_conversa_id, nlp_resposta_id);
+                }
             }
+
+            // Se caso a Sintra não entender, faz uma sugestão de perguntas
+            if((sintra_resposta.includes("confusa.") || contato_msg.split(" ").length == 1 || contato_msg.split(" ").length == 2) && posicao_conversa != 1 && contato_msg.length > 3){
+                
+                let arrayPerguntas = getPerguntasDeSugestao(contato_msg);
+
+                console.log("O bot não entendeu ou temos pouca informação, vamos sugerir perguntas.");
+                console.log(`Encontramos ${arrayPerguntas.length} perguntas.`);
+
+                if(arrayPerguntas.length > 0){
+                    sintra_resposta = "Não sei se entendi bem! 😅||Para ser mais assertiva preciso que você seja mais específico(a), porém não se preocupe, aqui estão algumas sugestões de dúvidas parecidas nas quais eu posso estar te ajudando. Basta selecionar a opção:\n\n";
+
+                    for(let i = 0; i < arrayPerguntas.length; i++){
+                        sintra_resposta += `\n*${i+1}* - ${arrayPerguntas[i]}?\n`;
+                    }
+
+                    atualizaMenuOpcoes(conversa_id, JSON.stringify(arrayPerguntas));
+                }
+            }
+
 
             console.log(`Resposta processada: "${sintra_resposta}"`);
 
@@ -87,7 +146,7 @@ function start(client) {
 
             let arrayRespostas = sintra_resposta.split('||');
 
-            if(arrayRespostas.length > 2 && posicao_conversa == 0){
+            if(arrayRespostas.length > 2 && posicao_conversa == 0 && !msg_inicial){
                 arrayRespostas.unshift(getMensagemInicialAleatoria());
             }
 
@@ -103,6 +162,62 @@ function start(client) {
         .catch(err => console.log(`Error: ${err}`));
     }
   });
+}
+
+function getPerguntasDeSugestao(pergunta){
+    const jsonString = fs.readFileSync('../../nlp/corpus.json', 'utf8');
+    const jsonData = JSON.parse(jsonString);
+    let perguntasSugestao = [];
+    
+    jsonData.data.forEach((conversas, indice) => {
+        // Pula as interações básicas
+        if(conversas.intent == 'sintra.ola' || conversas.intent == 'sintra.comoesta' || conversas.intent == 'sintra.tchau'){
+            console.log("Interação básica vamos ignorar");
+        }else{
+            let perguntas = conversas.utterances;
+    
+            for(let i = 0; i < perguntas.length; i++){
+                let perguntaNLP = perguntas[i];
+                if(perguntaNLP.includes(pergunta)){
+    
+                    if(perguntaNLP.includes("@assunto")){
+                        let assuntoAleatorio = Math.floor(Math.random() * 2);
+    
+                        if(assuntoAleatorio == 1){
+                            perguntaNLP = perguntaNLP.replace("@assunto", "paineis solares");
+                        }else{
+                            perguntaNLP = perguntaNLP.replace("@assunto", "energia solar");
+                        }
+                    }
+    
+                    perguntasSugestao.push(perguntaNLP);
+                    break;
+                }
+            }
+        }
+    });
+
+    perguntasSugestao = removeIndicesAleatorios(perguntasSugestao, 5);
+    return perguntasSugestao;
+}
+
+function removeIndicesAleatorios(array, numeroDeElementosDesejados) {
+    const totalElementos = array.length;
+  
+    if (numeroDeElementosDesejados >= totalElementos) {
+      return array;
+    }
+  
+    const arrayModificado = array.slice();
+  
+    const numeroDeElementosParaRemover = totalElementos - numeroDeElementosDesejados;
+  
+    for (let i = 0; i < numeroDeElementosParaRemover; i++) {
+      const indiceAleatorio = Math.floor(Math.random() * arrayModificado.length);
+      arrayModificado.splice(indiceAleatorio, 1);
+    }
+  
+    return arrayModificado;
 }
 
 function getResultadoSimuladorSolar(contato_msg){
@@ -135,7 +250,7 @@ function getResultadoSimuladorSolar(contato_msg){
         let resultado = `Perfeito, calculando só um segundinho...☀||`;
         resultado += `Prontinho {whats_nome}, aqui está mais detalhes do sistema fotovoltaico ideal para você:||`;
         resultado += `Levando em consideração que você tem um consumo de *${consumo_kwh}kWh/mês*, você precisaria de *${quant_paineis} paineis solares* que ocupariam uma área de *${area_instalacao}m²* na sua residência. ||`;
-        resultado += `Ah, e a boa notícia é que você teria uma economia anual de *R$ ${economia_anual_fatura},00* na sua fatura.||O custo total do sistema seria em torno de *R$ ${custo_sistema},00* .`;
+        resultado += `Ah, e a boa notícia é que você teria uma economia anual de *R$ ${economia_anual_fatura},00* na sua fatura.||O custo total do sistema seria em torno de *R$ ${custo_sistema},00*.||Caso queria fazer uma nova simulação basta digitar *Simulador Solar* ou então enviar sua dúvida, estou aqui para te auxiliar! 😉`;
 
         return resultado;
 
@@ -217,6 +332,23 @@ function atualizaPosicaoConversa(conversa_id, posicao){
 }
 
 /*
+ * Atualiza o menu de opções que é apresentada para o usuário
+ * @returns avoid
+ */
+function atualizaMenuOpcoes(conversa_id, menu_opcoes){
+    return new Promise((resolve, reject) => {
+        db.query(
+            `UPDATE conversas SET ? WHERE id = ?`, [{menu_opcoes: menu_opcoes}, conversa_id], (error, results) => {
+                if(error){
+                    console.error(error.message);
+                    resolve("");
+                }
+            }
+        );
+    });
+}
+
+/*
  * Registra uma mensagem na conversa do usuário
  * @returns avoid
  */
@@ -250,23 +382,11 @@ function getRespostaNLP(conversaId, respostaId){
         
         data.activities.forEach(atividade => {
             if(atividade.id == respostaId){
-
-                /*if(atividade.nlp.intent == 'None'){
-                    respostaTexto = "@Não encontrado nenhuma intenção";
-                }else if(parseFloat(atividade.nlp.score) <= 0.7){
-                    respostaTexto = "@Resposta não aceita, score muito baixo: " + atividade.nlp.score + "\n*Resposta: *" + atividade.text;
-                }else if(atividade.text.includes('errorparam')){
-                    respostaTexto = "@Resposta deu Errorparam";
-                }else{
-                    respostaTexto = atividade.text;
-                }*/
-
                 if(atividade.nlp.intent == 'None' || parseFloat(atividade.nlp.score) <= 0.71 || atividade.text.includes('errorparam')){
                     respostaTexto = "Desculpe, estou um pouco confusa. Será que você poderia me ajudar a entender reformulando sua pergunta?";
                 }else{
                     respostaTexto = atividade.text;
                 }
-
             }
         });
 
@@ -375,4 +495,20 @@ function removerAcentos(texto) {
   function removerCaracteresEspeciais(texto) {
     var regex = /[^\w\s.,]/g;
     return texto.replace(regex, "");
+  }
+
+  function saudar() {
+    const hora = new Date().getHours();
+    if (hora >= 6 && hora <= 12) {
+      return "Bom dia";
+    } else if (hora >= 12 && hora <= 18) {
+      return "Boa tarde";
+    } else {
+      return "Boa noite";
+    }
+  }
+
+  function removerEmojis(str) {
+    const emojis = /[^\w\s]/g;
+    return str.replace(emojis, '');
   }
