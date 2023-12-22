@@ -17,7 +17,10 @@
     "node-datetime": "^2.1.2",
     "sqlite3": "^5.1.6",
     "sync-request": "^6.1.0",
-    "venom-bot": "^5.0.6"
+    "venom-bot": "^5.0.6",
+    "@nlpjs/basic": "^4.26.1",
+    "@nlpjs/directline-connector": "^4.26.1",
+    "@nlpjs/express-api-server": "^4.26.1"
   },
   "bugs": {
     "url": "https://github.com/igorzs/sintra-wachatbot/issues"

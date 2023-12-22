@@ -1,0 +1,10 @@
+{
+    "settings": {
+      "nlp": {},
+      "api-server": {
+        "port": 3000,
+        "serveBot": true      
+      }
+    },
+    "use": ["Basic", "LangEn", "ExpressApiServer", "DirectlineConnector"]
+  }
