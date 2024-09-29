@@ -1,6 +1,6 @@
 
 <h1 align="center">
-    <img alt="" title="Chatbot Sintra" style="border-radius: 15px" src="images/sintra.jpeg">
+    <img alt="" title="Chatbot Sintra" style="max-width: 40%;" src="images/sintra.jpeg">
 </h1>
 
 <h3 align="center">Sintra: Energia Solar Simplificada.</h3>
