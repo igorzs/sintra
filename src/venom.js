@@ -275,15 +275,6 @@ function checaSeExisteConversa(telefone_cliente){
     })
 }
 
-function listaConversas(){
-    db.query(`SELECT * FROM conversas`, (error, row) => {
-        if (error) {
-          throw new Error(error.message);
-        }
-        console.log(row);
-    });
-}
-
 function getMensagemInicialAleatoria(){
 
     let array = ["Com certeza, aqui está!", "Entendido, aqui está!", "Ok, aqui está!", "Perfeito, aqui está!", "Sem problemas, aqui está!", "Ótimo, aqui está!", "Excelente, aqui está!", "Pronto, aqui está!", "De acordo, aqui está!", "Feito, aqui está!" ];
@@ -379,6 +370,7 @@ function getRespostaNLP(conversaId, respostaId){
         var res = request('GET', `http://localhost:3000/directline/conversations/${conversaId}/activities`);
         var data = JSON.parse(res.body);
         
+        console.log("aqui");
         data.activities.forEach(atividade => {
             if(atividade.id == respostaId){
                 if(atividade.nlp.intent == 'None' || parseFloat(atividade.nlp.score) <= 0.71 || atividade.text.includes('errorparam')){
@@ -393,7 +385,7 @@ function getRespostaNLP(conversaId, respostaId){
 
     } catch (e) {
 
-        console.log(`Erro na requisição: ${e}`);
+        console.log(`Erro na requisição 1: ${e}`);
         return {};
 
     }
@@ -442,16 +434,12 @@ function adicionaAtividadeNLP(conversaId, mensagem){
 
     } catch (e) {
 
-        console.log(`Erro na requisição: ${e}`);
+        console.log(`Erro na requisição 2: ${e}`);
         return {};
 
     }
 }
 
-/*
- * Inicia uma conversa com o NLP - Rest Connector
- * @returns id
- */
 function iniciaConversaNLP(){
     try {
 
@@ -466,7 +454,7 @@ function iniciaConversaNLP(){
 
     } catch (e) {
 
-        console.log(`Erro na requisição: ${e}`);
+        console.log(`Erro na requisição 3: ${e}`);
         return {};
 
     }
@@ -511,7 +499,7 @@ function removerAcentos(texto) {
     }
   }
 
-  function removerEmojis(str) {
-    const emojis = /[^\w\s]/g;
-    return str.replace(emojis, '');
-  }
+  /*
+ * Inicia uma conversa com o NLP - Rest Connector
+ * @returns id
+ */
